@@ -1,0 +1,99 @@
+
+
+i.mdi { line-height: 1; }
+.h-100v { height: 100vh; }
+sup { top: 0; }
+.bg-gray { background-color: var(--bs-body-bg); }
+
+.form-group { margin-bottom: 8px; }
+.form-label { margin-bottom: 5px; }
+.form-group.form-group-cols {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+}
+.form-group-cols .form-label { width: 40%; }
+.form-group.d-flex label {
+    margin: 0;
+}
+.input-group span.select2.select2-container {
+    width: 80% !important;
+}
+
+input[switch=userban]:checked+label {
+    background-color: #f46a6a;
+}
+input[switch=userban]+label {
+    background-color: #34c38f;
+}
+
+input[switch=status]:checked+label {
+    background-color: #34c38f;
+}
+input[switch=status]+label {
+    background-color: #f46a6a;
+}
+
+
+/* Button Css */
+.btn {
+    line-height: 1;
+}
+.btn-soft-info {
+    color: #50a5f1;
+    background-color: rgb(80 165 241 / 30%);
+}
+.btn-soft-danger {
+    color: #f46a6a;
+    background-color: rgb(244 106 106 / 30%);
+}
+.btn-soft-success {
+    color: #34c38f;
+    background-color: rgb(52 195 143 / 30%);
+}
+
+.card {
+    -webkit-box-shadow: 0 0 13px 0 rgb(82 63 105 / 5%);
+    box-shadow: 0 0 13px 0 rgb(82 63 105 / 5%);
+    background-color: #fff;
+    margin-bottom: 20px;
+    border: 1px solid #ebedf2;
+}
+.card-header, .card-footer {
+    position: relative;
+    padding: 12px 25px;
+    border-bottom: 1px solid #ebedf2;
+    background-color: transparent;
+}
+.card .card-body {
+    padding: 20px 25px;
+    border-radius: 4px;
+    border-bottom: 1px solid #ebedf2;
+}
+
+.dropify-wrapper .dropify-message p {
+    margin: 5px 0 0;
+    font-size: 14px;
+}
+
+.document-box {
+    position: relative;
+    margin-bottom: 15px;;
+}
+.document-box .remove-doc i {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #fff;
+    padding: 7px;
+    border-radius: 50px;
+    box-shadow: 0px 0px 3px 1px #ebebeb;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    z-index: 999;
+}
+
+.accordion-item {
+    color: var(--bs-body-color);
+}
