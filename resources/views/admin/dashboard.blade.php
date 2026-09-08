@@ -99,6 +99,179 @@
                 </div>
             </div>
 
+            {{-- ============================================================
+                 Contract Balance Amounts
+                 Contracts that still carry an outstanding balance.
+                 ============================================================ --}}
+            <div class="htg-sect">
+                <h4>Contract Balance Amounts</h4>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    @if ($contractsWithBalance->isEmpty())
+                        <div class="htg-empty">
+                            <i class="bx bx-check-circle"></i>
+                            <p>
+                                <strong>All contracts settled</strong>
+                                No contracts have a pending balance right now.
+                            </p>
+                        </div>
+                    @else
+                        <div class="htg-totals mb-3">
+                            <div>
+                                <span>Contracts with balance</span>
+                                <strong>{{ $contractsWithBalance->count() }}</strong>
+                            </div>
+                            <div>
+                                <span>Total pending balance</span>
+                                <strong style="color:var(--htg-bad)">
+                                    <span class="htg-cur">₹</span>{{ number_format($totalPendingBalance, 2) }}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="balanceTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Company</th>
+                                        <th>BDM</th>
+                                        <th>Date</th>
+                                        <th class="text-end">Total Amount</th>
+                                        <th class="text-end">Amount Added</th>
+                                        <th class="text-end">Balance</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($contractsWithBalance as $key => $contract)
+                                        <tr>
+                                            <td class="htg-fig">{{ $key + 1 }}</td>
+                                            <td class="htg-strong">{{ $contract->company }}</td>
+                                            <td>{{ $contract->user->name ?? '—' }}</td>
+                                            <td class="htg-fig">{{ $contract->date }}</td>
+                                            <td class="text-end htg-fig">
+                                                <span class="htg-cur">₹</span>{{ number_format($contract->contract_total, 2) }}
+                                            </td>
+                                            <td class="text-end htg-fig">
+                                                <span class="htg-cur">₹</span>{{ number_format($contract->contract_paid, 2) }}
+                                            </td>
+                                            <td class="text-end htg-fig htg-strong" style="color:var(--htg-bad)">
+                                                <span class="htg-cur">₹</span>{{ number_format($contract->contract_balance, 2) }}
+                                            </td>
+                                            <td class="text-center" style="white-space:nowrap;">
+                                                <button type="button"
+                                                    class="btn btn-primary btn-sm waves-effect waves-light btn-add-balance"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#addBalanceModal"
+                                                    data-entry-id="{{ $contract->id }}"
+                                                    data-company="{{ $contract->company }}"
+                                                    data-total="{{ $contract->contract_total }}"
+                                                    data-paid="{{ $contract->contract_paid }}"
+                                                    data-balance="{{ $contract->contract_balance }}">
+                                                    <i class="bx bx-plus me-1"></i>Add Amount
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Add Balance Payment Modal --}}
+            <div class="modal fade" id="addBalanceModal" tabindex="-1" aria-labelledby="addBalanceModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <form id="balancePaymentForm">
+                            <input type="hidden" name="entry_id" id="bp_entry_id">
+
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addBalanceModalLabel">Add Balance Amount</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+
+                            <div class="modal-body">
+
+                                {{-- Contract summary --}}
+                                <div class="htg-totals mb-3">
+                                    <div>
+                                        <span>Company</span>
+                                        <strong id="bp_company" class="text-truncate" style="max-width:180px"></strong>
+                                    </div>
+                                    <div>
+                                        <span>Total</span>
+                                        <strong id="bp_total"></strong>
+                                    </div>
+                                    <div>
+                                        <span>Already added</span>
+                                        <strong id="bp_paid"></strong>
+                                    </div>
+                                    <div>
+                                        <span>Remaining balance</span>
+                                        <strong id="bp_balance" style="color:var(--htg-bad)"></strong>
+                                    </div>
+                                </div>
+
+                                {{-- Payment history (loaded via AJAX) --}}
+                                <div id="bp_history" class="mb-3"></div>
+
+                                {{-- Error alert (hidden by default) --}}
+                                <div class="alert alert-danger mb-3" id="bp_error" hidden>
+                                    <i class="bx bx-error-circle me-1"></i><span id="bp_error_text"></span>
+                                </div>
+
+                                {{-- Form fields --}}
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="bp_bank">Bank <span
+                                                class="text-danger">*</span></label>
+                                        <select name="bank_name" id="bp_bank" class="form-select" required>
+                                            <option value="">Select Bank</option>
+                                            @foreach ($banks as $b)
+                                                <option value="{{ $b->bank }}">{{ $b->bank }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="bp_amount">Amount <span
+                                                class="text-danger">*</span></label>
+                                        <input type="number" name="amount" id="bp_amount" class="form-control htg-fig"
+                                            step="0.01" min="0.01" placeholder="0.00" required>
+                                        <small class="text-muted" id="bp_max_hint"></small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="bp_date">Date <span
+                                                class="text-danger">*</span></label>
+                                        <input type="date" name="payment_date" id="bp_date" class="form-control"
+                                            value="{{ date('Y-m-d') }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="bp_remark">Remark</label>
+                                        <input type="text" name="remark" id="bp_remark" class="form-control"
+                                            placeholder="Optional note">
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary" id="bp_submit">
+                                    <i class="bx bx-check me-1"></i>Save Payment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             {{-- Payment Filter --}}
             <div class="htg-sect">
                 <h4>Payments</h4>
@@ -474,5 +647,121 @@
         });
 
         window.addEventListener('htg:themechange', drawAllCharts);
+    </script>
+
+    {{-- ============================================================
+         Contract Balance Payment — modal logic
+         ============================================================ --}}
+    <script>
+        (function () {
+            const modal      = document.getElementById('addBalanceModal');
+            const form       = document.getElementById('balancePaymentForm');
+            const errorBox   = document.getElementById('bp_error');
+            const errorText  = document.getElementById('bp_error_text');
+            const submitBtn  = document.getElementById('bp_submit');
+
+            if (!modal || !form) return;
+
+            function fmt(n) {
+                return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            /* ── Populate modal when it opens ── */
+            modal.addEventListener('show.bs.modal', function (event) {
+                const btn     = event.relatedTarget;
+                const id      = btn.getAttribute('data-entry-id');
+                const company = btn.getAttribute('data-company');
+                const total   = parseFloat(btn.getAttribute('data-total'));
+                const paid    = parseFloat(btn.getAttribute('data-paid'));
+                const balance = parseFloat(btn.getAttribute('data-balance'));
+
+                document.getElementById('bp_entry_id').value = id;
+                document.getElementById('bp_company').textContent = company;
+                document.getElementById('bp_total').innerHTML   = '<span class="htg-cur">₹</span>' + fmt(total);
+                document.getElementById('bp_paid').innerHTML    = '<span class="htg-cur">₹</span>' + fmt(paid);
+                document.getElementById('bp_balance').innerHTML = '<span class="htg-cur">₹</span>' + fmt(balance);
+
+                const amountInput = document.getElementById('bp_amount');
+                amountInput.max   = balance;
+                amountInput.value = '';
+                document.getElementById('bp_max_hint').textContent = 'Maximum ₹' + fmt(balance);
+
+                // Reset fields
+                document.getElementById('bp_bank').value   = '';
+                document.getElementById('bp_remark').value = '';
+                document.getElementById('bp_date').value   = new Date().toISOString().slice(0, 10);
+                errorBox.hidden = true;
+
+                // Load payment history
+                const historyEl = document.getElementById('bp_history');
+                historyEl.innerHTML = '<div class="text-muted"><i class="bx bx-loader-alt bx-spin me-1"></i>Loading payment history…</div>';
+
+                fetch('/admin/contract/' + id + '/payments', {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.payments || data.payments.length === 0) {
+                        historyEl.innerHTML = '<small class="text-muted">No payments recorded yet for this contract.</small>';
+                        return;
+                    }
+                    let html = '<label class="form-label mb-1">Payment history</label>';
+                    html += '<div class="table-responsive"><table class="table table-sm table-bordered mb-0">';
+                    html += '<thead class="table-light"><tr><th>Date</th><th>Bank</th><th class="text-end">Amount</th><th>Remark</th></tr></thead><tbody>';
+                    data.payments.forEach(function (p) {
+                        html += '<tr>';
+                        html += '<td class="htg-fig">' + p.payment_date + '</td>';
+                        html += '<td>' + p.bank_name + '</td>';
+                        html += '<td class="text-end htg-fig"><span class="htg-cur">₹</span>' + p.amount + '</td>';
+                        html += '<td class="text-muted">' + (p.remark || '—') + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                    historyEl.innerHTML = html;
+                })
+                .catch(function () {
+                    historyEl.innerHTML = '<small class="text-muted">Could not load payment history.</small>';
+                });
+            });
+
+            /* ── Submit via AJAX ── */
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                errorBox.hidden = true;
+
+                const originalLabel = submitBtn.innerHTML;
+                submitBtn.disabled  = true;
+                submitBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…';
+
+                const formData = new FormData(form);
+
+                fetch("{{ route('admin.contract.payment.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(function (res) { return res.json().then(function (j) { j._status = res.status; return j; }); })
+                .then(function (data) {
+                    if (data.success) {
+                        // Reload the page — the flash message and updated card will show
+                        window.location.reload();
+                    } else {
+                        errorText.textContent = data.message || 'Something went wrong.';
+                        errorBox.hidden = false;
+                        submitBtn.disabled  = false;
+                        submitBtn.innerHTML = originalLabel;
+                    }
+                })
+                .catch(function () {
+                    errorText.textContent = 'Network error — check your connection and try again.';
+                    errorBox.hidden = false;
+                    submitBtn.disabled  = false;
+                    submitBtn.innerHTML = originalLabel;
+                });
+            });
+        })();
     </script>
 @endsection

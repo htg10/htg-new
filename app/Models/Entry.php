@@ -49,4 +49,9 @@ class Entry extends Model
     {
         return $this->belongsTo(Telecaller::class);
     }
+
+    public function contractPayments()
+    {
+        return $this->hasMany(ContractPayment::class, 'entry_id');
+    }
 }

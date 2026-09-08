@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exports\FinanceExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\ContractPayment;
 
 class BackendIndexController extends Controller
 {
@@ -56,6 +57,21 @@ class BackendIndexController extends Controller
         $paymentChartData = $dashboardData['paymentChartData'];
         $dateChartData = $dashboardData['dateChartData'];
 
+        // Contracts that still carry a balance (for the dashboard card)
+        $contractsWithBalance = Entry::with(['product', 'user', 'contractPayments'])
+            ->get()
+            ->map(function ($e) {
+                $e->contract_total   = $e->product->sum(fn ($p) => (float) $p->total_amount);
+                $e->contract_paid    = $e->product->sum(fn ($p) => (float) $p->paid_amount);
+                $e->contract_balance = round($e->contract_total - $e->contract_paid, 2);
+                return $e;
+            })
+            ->filter(fn ($e) => $e->contract_balance > 0)
+            ->sortByDesc('contract_balance')
+            ->values();
+
+        $totalPendingBalance = $contractsWithBalance->sum('contract_balance');
+
         if (Auth::user()->role_id == 1) {
             return view('admin.dashboard', compact(
                 'entry',
@@ -74,7 +90,9 @@ class BackendIndexController extends Controller
                 'bdmPriceChartData',
                 'servicePriceChartData',
                 'paymentChartData',
-                'dateChartData'
+                'dateChartData',
+                'contractsWithBalance',
+                'totalPendingBalance'
             ));
         } elseif (Auth::user()->role_id == 2) {
             return view('user.index');

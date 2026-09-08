@@ -20,6 +20,7 @@ use ZipArchive;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\AdminExport;
 use App\Models\User;
+use App\Models\ContractPayment;
 
 class DashboardController extends Controller
 {
@@ -289,6 +290,19 @@ class DashboardController extends Controller
             }
         }
 
+        // Log the initial payment in contract_payments
+        $initialPaid = Products::where('entry_id', $entry->id)->sum('paid_amount');
+        if ($initialPaid > 0 && !empty($data['payment'])) {
+            ContractPayment::create([
+                'entry_id'     => $entry->id,
+                'bank_name'    => $data['payment'],
+                'amount'       => $initialPaid,
+                'payment_date' => $entry->date ?? now()->format('Y-m-d'),
+                'remark'       => 'Initial payment at contract creation',
+                'created_by'   => auth()->id(),
+            ]);
+        }
+
         if ($data['type'] === 'new') {
             $smsTemplateId = env('NEW_SERVICE_TEMPLATE_ID');
             $message = "Welcome to Help Together Group, " . $entry->contact . "! Thank you for choosing Services.";
@@ -465,6 +479,24 @@ class DashboardController extends Controller
             }
         }
 
+        // Log the edit payment in contract_payments
+        $editPaymentTotal = 0;
+        foreach ($products as $product) {
+            if (isset($product['name']) && !empty($product['paid_amount']) && (float) $product['paid_amount'] > 0) {
+                $editPaymentTotal += (float) $product['paid_amount'];
+            }
+        }
+        if ($editPaymentTotal > 0) {
+            ContractPayment::create([
+                'entry_id'     => $entry->id,
+                'bank_name'    => $entry->payment ?? 'Unknown',
+                'amount'       => $editPaymentTotal,
+                'payment_date' => $entry->date ?? now()->format('Y-m-d'),
+                'remark'       => 'Payment added via contract edit',
+                'created_by'   => auth()->id(),
+            ]);
+        }
+
         return redirect('/index')->with('success', 'Update successfully.');
     }
 
@@ -516,4 +548,133 @@ class DashboardController extends Controller
         return redirect()->back()->with('success', 'Items processed successfully!');
     }
 
+    /**
+     * Return the payment transaction history for a contract (JSON).
+     */
+    public function contractPaymentHistory($entryId)
+    {
+        $payments = ContractPayment::where('entry_id', $entryId)
+            ->orderBy('payment_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id'           => $p->id,
+                    'bank_name'    => $p->bank_name,
+                    'amount'       => number_format((float) $p->amount, 2),
+                    'amount_raw'   => (float) $p->amount,
+                    'payment_date' => $p->payment_date ? $p->payment_date->format('d-m-Y') : '—',
+                    'remark'       => $p->remark ?? '',
+                ];
+            });
+
+        return response()->json(['payments' => $payments]);
+    }
+
+    /**
+     * Store a balance payment against a contract.
+     *
+     * Accepts AJAX — returns JSON.
+     * Distributes the lump-sum proportionally across products that still
+     * carry a balance, records the transaction in contract_payments, and
+     * updates entries.receivedamount to stay in sync.
+     */
+    public function storeBalancePayment(Request $request)
+    {
+        try {
+            $request->validate([
+                'entry_id'     => 'required|exists:entries,id',
+                'bank_name'    => 'required|string|max:255',
+                'amount'       => 'required|numeric|min:0.01',
+                'payment_date' => 'required|date',
+                'remark'       => 'nullable|string|max:1000',
+            ]);
+
+            $entry = Entry::with('product')->findOrFail($request->entry_id);
+
+            $totalAmount      = $entry->product->sum(fn ($p) => (float) $p->total_amount);
+            $totalPaid        = $entry->product->sum(fn ($p) => (float) $p->paid_amount);
+            $remainingBalance = round($totalAmount - $totalPaid, 2);
+
+            if ($remainingBalance <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This contract is already fully paid.',
+                ], 422);
+            }
+
+            $paymentAmount = round((float) $request->amount, 2);
+
+            if ($paymentAmount > $remainingBalance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Amount (₹' . number_format($paymentAmount, 2) . ') exceeds remaining balance of ₹' . number_format($remainingBalance, 2) . '.',
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            // 1. Record the payment transaction
+            ContractPayment::create([
+                'entry_id'     => $entry->id,
+                'bank_name'    => $request->bank_name,
+                'amount'       => $paymentAmount,
+                'payment_date' => $request->payment_date,
+                'remark'       => $request->remark,
+                'created_by'   => auth()->id(),
+            ]);
+
+            // 2. Distribute proportionally across products with remaining balance
+            $productsWithBalance = $entry->product->filter(
+                fn ($p) => ((float) $p->total_amount - (float) $p->paid_amount) > 0
+            )->values();
+
+            $totalProductBalance = $productsWithBalance->sum(
+                fn ($p) => (float) $p->total_amount - (float) $p->paid_amount
+            );
+
+            $distributed = 0;
+            $count       = $productsWithBalance->count();
+
+            foreach ($productsWithBalance as $index => $product) {
+                $productBalance = (float) $product->total_amount - (float) $product->paid_amount;
+
+                if ($index === $count - 1) {
+                    // Last product absorbs any rounding remainder
+                    $share = round($paymentAmount - $distributed, 2);
+                } else {
+                    $share = round(($productBalance / $totalProductBalance) * $paymentAmount, 2);
+                }
+
+                $product->paid_amount    = round((float) $product->paid_amount + $share, 2);
+                $product->balance_amount = round((float) $product->total_amount - (float) $product->paid_amount, 2);
+                $product->save();
+
+                $distributed += $share;
+            }
+
+            // 3. Update the entry-level summary fields
+            $newTotalPaid = Products::where('entry_id', $entry->id)->sum('paid_amount');
+            $entry->receivedamount = $newTotalPaid;
+            $entry->save();
+
+            DB::commit();
+
+            session()->flash('success', 'Balance payment of ₹' . number_format($paymentAmount, 2) . ' recorded successfully.');
+
+            return response()->json(['success' => true]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first(),
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save payment. Please try again.',
+            ], 500);
+        }
+    }
 }

@@ -73,6 +73,10 @@ Route::group(['middleware' => ['auth', 'role:1']], function () {
 
     Route::get('/historyPage', [DashboardController::class, 'index'])->name('historyPage');
 
+    // Contract Balance Payments
+    Route::post('/admin/contract-payment', [DashboardController::class, 'storeBalancePayment'])->name('admin.contract.payment.store');
+    Route::get('/admin/contract/{entry}/payments', [DashboardController::class, 'contractPaymentHistory'])->name('admin.contract.payment.history');
+
     // SMS
     Route::post('/send-sms', [SMSController::class, 'sendSms']);
     Route::get('/download-multiple/{id}', [DashboardController::class, 'downloadImages'])->name('download');
