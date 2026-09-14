@@ -21,6 +21,7 @@ use DB;
 use ZipArchive;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\UsersExport;
+use App\Models\PaymentHistory;
 
 class UserController extends Controller
 {
@@ -269,15 +270,27 @@ class UserController extends Controller
                         break;
                 }
 
-                Products::create([
+                $newProduct = Products::create([
                     'product_name' => $product['name'],
                     'total_amount' => $product['total_amount'],
                     'paid_amount' => $product['paid_amount'],
                     'balance_amount' => $product['total_amount'] - $product['paid_amount'],
                     'validity' => $validity,
                     'expiry_date' => $expiryDate,
+                    'payment_date' => Carbon::now()->format('Y-m-d'),
                     'entry_id' => $entry->id,
                 ]);
+
+                if ($product['paid_amount'] > 0) {
+                    PaymentHistory::create([
+                        'entry_id' => $entry->id,
+                        'product_id' => $newProduct->id,
+                        'product_name' => $product['name'],
+                        'amount' => $product['paid_amount'],
+                        'payment_bank' => $request->input('payment'),
+                        'payment_date' => Carbon::now()->format('Y-m-d'),
+                    ]);
+                }
 
                 // for mail
                 $productDetails[] = [
@@ -465,8 +478,7 @@ class UserController extends Controller
                 }
                 $product_old = Products::where('entry_id', $entry->id)->where('product_name', $product['name'])->first();
 
-                // dd($product_old);
-                Products::updateOrCreate(
+                $updatedProduct = Products::updateOrCreate(
                     ['entry_id' => $entry->id, 'product_name' => $product['name']],
                     [
                         'total_amount' => $product['total_amount'],
@@ -474,8 +486,20 @@ class UserController extends Controller
                         'balance_amount' => $product_old->balance_amount - $product['paid_amount'],
                         'validity' => $validity,
                         'expiry_date' => $expiryDate,
+                        'payment_date' => $product['paid_amount'] > 0 ? Carbon::now()->format('Y-m-d') : ($product_old ? $product_old->payment_date : null),
                     ]
                 );
+
+                if ($product['paid_amount'] > 0) {
+                    PaymentHistory::create([
+                        'entry_id' => $entry->id,
+                        'product_id' => $updatedProduct->id,
+                        'product_name' => $product['name'],
+                        'amount' => $product['paid_amount'],
+                        'payment_bank' => $product['payment_bank'] ?? null,
+                        'payment_date' => Carbon::now()->format('Y-m-d'),
+                    ]);
+                }
 
                 // for mail
                 // $productDetails[] = [

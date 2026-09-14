@@ -27,13 +27,16 @@
         </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive" style="max-height: 660px; overflow-y: auto;">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
                 <tr>
                     <th>Type</th>
+                    <th>Company</th>
+                    <th>Service</th>
                     <th>Payment Mode</th>
-                    <th>Date</th>
+                    <th>Contract Date</th>
+                    <th>Payment Date</th>
                     <th class="text-end">Amount</th>
                 </tr>
             </thead>
@@ -45,9 +48,14 @@
                         <td>
                             <strong>Income</strong>
                         </td>
-                        <td>{{ $row->payment ?? '-' }}</td>
+                        <td>{{ $row->company ?? '-' }}</td>
+                        <td>{{ $row->product_name ?? '-' }}</td>
+                        <td>{{ $row->payment_bank ?? $row->payment ?? '-' }}</td>
                         <td class="htg-fig">
                             {{ !empty($row->date) ? \Carbon\Carbon::parse($row->date)->format('d-m-Y') : '-' }}
+                        </td>
+                        <td class="htg-fig">
+                            {{ !empty($row->payment_date) ? \Carbon\Carbon::parse($row->payment_date)->format('d-m-Y') : '-' }}
                         </td>
                         <td class="text-end htg-fig htg-strong">
                             <span class="htg-cur">₹</span>{{ number_format($row->amount ?? 0, 2) }}
@@ -61,10 +69,13 @@
                         <td>
                             <strong>Expense</strong>
                         </td>
+                        <td>—</td>
+                        <td>—</td>
                         <td>{{ $row->payment ?? '-' }}</td>
                         <td class="htg-fig">
                             {{ !empty($row->date) ? \Carbon\Carbon::parse($row->date)->format('d-m-Y') : '-' }}
                         </td>
+                        <td class="htg-fig">—</td>
                         <td class="text-end htg-fig htg-strong">
                             <span class="htg-cur">₹</span>{{ number_format($row->amount ?? 0, 2) }}
                         </td>
@@ -72,23 +83,23 @@
                 @endforeach
             </tbody>
 
-            <tfoot class="table-light">
+            <tfoot class="table-light" style="position: sticky; bottom: 0; z-index: 1;">
                 <tr>
-                    <th colspan="3" class="text-end">Total Income</th>
+                    <th colspan="6" class="text-end">Total Income</th>
                     <th class="text-end htg-fig" style="color:var(--htg-ok)">
                         <span class="htg-cur">₹</span>{{ number_format($totalIncome ?? 0, 2) }}
                     </th>
                 </tr>
 
                 <tr>
-                    <th colspan="3" class="text-end">Total Expense</th>
+                    <th colspan="6" class="text-end">Total Expense</th>
                     <th class="text-end htg-fig" style="color:var(--htg-bad)">
                         <span class="htg-cur">₹</span>{{ number_format($totalExpense ?? 0, 2) }}
                     </th>
                 </tr>
 
                 <tr>
-                    <th colspan="3" class="text-end">Net Balance</th>
+                    <th colspan="6" class="text-end">Net Balance</th>
                     <th class="text-end htg-fig"
                         style="color:{{ ($netBalance ?? 0) >= 0 ? 'var(--htg-ok)' : 'var(--htg-bad)' }}">
                         <span class="htg-cur">₹</span>{{ number_format($netBalance ?? 0, 2) }}

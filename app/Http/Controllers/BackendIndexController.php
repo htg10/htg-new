@@ -137,36 +137,44 @@ class BackendIndexController extends Controller
         $payment = $request->payment_mode;
         $from = $request->from_date;
         $to = $request->to_date;
+        $company = $request->company;
 
         $records = [];
 
         /* ===== INCOME ===== */
-        $income = DB::table('entries as e')
-            ->join('products as p', 'p.entry_id', '=', 'e.id')
+        $income = DB::table('payment_histories as ph')
+            ->join('entries as e', 'e.id', '=', 'ph.entry_id')
             ->select(
-                'e.payment as payment',
-                'e.date as date',
-                DB::raw('SUM(p.paid_amount) as amount')
+                'e.company',
+                'ph.product_name',
+                DB::raw('COALESCE(ph.payment_bank, e.payment) as payment'),
+                'e.date',
+                'ph.payment_date',
+                'ph.amount'
             )
-            ->whereNotNull('e.payment')
-            ->groupBy('e.payment', 'e.date');
+            ->whereNotNull('e.payment');
 
+        if ($company)
+            $income->where('e.company', 'like', '%' . $company . '%');
         if ($payment)
             $income->where('e.payment', $payment);
         if ($from && $to) {
-            $income->whereBetween('e.date', [$from, $to]);
+            $income->whereBetween('ph.payment_date', [$from, $to]);
         } elseif ($from) {
-            $income->whereDate('e.date', '>=', $from);
+            $income->whereDate('ph.payment_date', '>=', $from);
         } elseif ($to) {
-            $income->whereDate('e.date', '<=', $to);
+            $income->whereDate('ph.payment_date', '<=', $to);
         }
 
-        foreach ($income->get() as $row) {
+        foreach ($income->orderBy('ph.payment_date', 'desc')->get() as $row) {
             $records[] = [
-                'Income',
-                $row->payment,
-                $row->date,
-                $row->amount
+                'type' => 'Income',
+                'company' => $row->company,
+                'service' => $row->product_name,
+                'payment' => $row->payment,
+                'date' => $row->date,
+                'payment_date' => $row->payment_date,
+                'amount' => $row->amount,
             ];
         }
 
@@ -190,10 +198,13 @@ class BackendIndexController extends Controller
 
         foreach ($expense->get() as $row) {
             $records[] = [
-                'Expense',
-                $row->payment,
-                $row->date,
-                $row->amount
+                'type' => 'Expense',
+                'company' => '—',
+                'service' => '—',
+                'payment' => $row->payment,
+                'date' => $row->date,
+                'payment_date' => '—',
+                'amount' => $row->amount,
             ];
         }
 
@@ -205,36 +216,44 @@ class BackendIndexController extends Controller
         $payment = $request->payment_mode;
         $from = $request->from_date;
         $to = $request->to_date;
+        $company = $request->company;
 
         /*
         |--------------------------------------------------------------------------
         | Income Table Data
         |--------------------------------------------------------------------------
         */
-        $incomeQuery = DB::table('entries as e')
-            ->join('products as p', 'p.entry_id', '=', 'e.id')
+        $incomeQuery = DB::table('payment_histories as ph')
+            ->join('entries as e', 'e.id', '=', 'ph.entry_id')
             ->select(
+                'e.company',
                 'e.payment',
                 'e.date',
-                DB::raw('SUM(p.paid_amount) as amount'),
+                'ph.product_name',
+                'ph.payment_date',
+                'ph.payment_bank',
+                'ph.amount',
                 DB::raw("'Income' as type")
             )
-            ->whereNotNull('e.payment')
-            ->groupBy('e.payment', 'e.date');
+            ->whereNotNull('e.payment');
+
+        if (!empty($company)) {
+            $incomeQuery->where('e.company', 'like', '%' . $company . '%');
+        }
 
         if (!empty($payment)) {
             $incomeQuery->where('e.payment', $payment);
         }
 
         if (!empty($from) && !empty($to)) {
-            $incomeQuery->whereBetween('e.date', [$from, $to]);
+            $incomeQuery->whereBetween('ph.payment_date', [$from, $to]);
         } elseif (!empty($from)) {
-            $incomeQuery->whereDate('e.date', '>=', $from);
+            $incomeQuery->whereDate('ph.payment_date', '>=', $from);
         } elseif (!empty($to)) {
-            $incomeQuery->whereDate('e.date', '<=', $to);
+            $incomeQuery->whereDate('ph.payment_date', '<=', $to);
         }
 
-        $income = $incomeQuery->get();
+        $income = $incomeQuery->orderBy('ph.payment_date', 'desc')->get();
 
         /*
         |--------------------------------------------------------------------------
@@ -280,6 +299,9 @@ class BackendIndexController extends Controller
             )
             ->groupBy('u.name');
 
+        if (!empty($company)) {
+            $bdmCountQuery->where('e.company', 'like', '%' . $company . '%');
+        }
         if (!empty($payment)) {
             $bdmCountQuery->where('e.payment', $payment);
         }
@@ -312,6 +334,9 @@ class BackendIndexController extends Controller
             )
             ->groupBy('p.product_name');
 
+        if (!empty($company)) {
+            $serviceCountQuery->where('e.company', 'like', '%' . $company . '%');
+        }
         if (!empty($payment)) {
             $serviceCountQuery->where('e.payment', $payment);
         }
@@ -346,6 +371,9 @@ class BackendIndexController extends Controller
             ->whereNotNull('e.payment')
             ->groupBy('u.name');
 
+        if (!empty($company)) {
+            $bdmPriceQuery->where('e.company', 'like', '%' . $company . '%');
+        }
         if (!empty($payment)) {
             $bdmPriceQuery->where('e.payment', $payment);
         }
@@ -379,6 +407,9 @@ class BackendIndexController extends Controller
             ->whereNotNull('e.payment')
             ->groupBy('p.product_name');
 
+        if (!empty($company)) {
+            $servicePriceQuery->where('e.company', 'like', '%' . $company . '%');
+        }
         if (!empty($payment)) {
             $servicePriceQuery->where('e.payment', $payment);
         }
@@ -412,6 +443,9 @@ class BackendIndexController extends Controller
             ->whereNotNull('e.payment')
             ->groupBy('e.payment');
 
+        if (!empty($company)) {
+            $paymentChartQuery->where('e.company', 'like', '%' . $company . '%');
+        }
         if (!empty($payment)) {
             $paymentChartQuery->where('e.payment', $payment);
         }
@@ -446,6 +480,9 @@ class BackendIndexController extends Controller
             ->groupBy('e.date')
             ->orderBy('e.date', 'ASC');
 
+        if (!empty($company)) {
+            $dateChartQuery->where('e.company', 'like', '%' . $company . '%');
+        }
         if (!empty($payment)) {
             $dateChartQuery->where('e.payment', $payment);
         }

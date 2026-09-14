@@ -69,6 +69,7 @@
         <span>{{ $mode === 'edit' ? 'Already Paid' : 'Paid Amount' }}</span>
         @if ($mode === 'edit')
             <span>New Payment</span>
+            <span>Payment Bank</span>
         @endif
     </div>
 
@@ -113,6 +114,13 @@
                         <input class="form-control form-control-sm htg-fig" type="text"
                             name="products[{{ $count }}][paid_amount]" value="" placeholder="New payment"
                             inputmode="decimal">
+
+                        <select name="products[{{ $count }}][payment_bank]" class="form-select form-select-sm">
+                            <option value="">Select Bank</option>
+                            @foreach ($banks ?? [] as $b)
+                                <option value="{{ $b->bank }}">{{ $b->bank }}</option>
+                            @endforeach
+                        </select>
                     @else
                         <input class="form-control form-control-sm htg-fig total-amount" type="text"
                             name="products[{{ $count }}][total_amount]" placeholder="Total"

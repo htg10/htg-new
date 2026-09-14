@@ -24,9 +24,12 @@ class FinanceExport implements FromCollection, WithHeadings
     {
         return [
             'Type',
+            'Company',
+            'Service',
             'Payment Mode',
-            'Date',
-            'Amount'
+            'Contract Date',
+            'Payment Date',
+            'Amount',
         ];
     }
 }

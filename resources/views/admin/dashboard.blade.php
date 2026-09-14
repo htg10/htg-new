@@ -109,6 +109,11 @@
                     <div class="row align-items-end">
 
                         <div class="col-lg-3 col-md-6 mb-3">
+                            <label class="form-label" for="company_search">Company Name</label>
+                            <input type="text" id="company_search" class="form-control" placeholder="Search company...">
+                        </div>
+
+                        <div class="col-lg-2 col-md-6 mb-3">
                             <label class="form-label" for="payment_mode">Payment Mode</label>
                             <select id="payment_mode" class="form-control">
                                 <option value="">All</option>
@@ -118,12 +123,12 @@
                             </select>
                         </div>
 
-                        <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="col-lg-2 col-md-6 mb-3">
                             <label class="form-label" for="from_date">From Date</label>
                             <input type="date" id="from_date" class="form-control">
                         </div>
 
-                        <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="col-lg-2 col-md-6 mb-3">
                             <label class="form-label" for="to_date">To Date</label>
                             <input type="date" id="to_date" class="form-control">
                         </div>
@@ -402,6 +407,7 @@
 
         function getFilters() {
             return {
+                company: document.getElementById('company_search').value,
                 payment_mode: document.getElementById('payment_mode').value,
                 from_date: document.getElementById('from_date').value,
                 to_date: document.getElementById('to_date').value
@@ -456,14 +462,14 @@
             let f = getFilters();
 
             window.location =
-                `{{ route('dashboard.export.excel') }}?payment_mode=${encodeURIComponent(f.payment_mode)}&from_date=${encodeURIComponent(f.from_date)}&to_date=${encodeURIComponent(f.to_date)}`;
+                `{{ route('dashboard.export.excel') }}?company=${encodeURIComponent(f.company)}&payment_mode=${encodeURIComponent(f.payment_mode)}&from_date=${encodeURIComponent(f.from_date)}&to_date=${encodeURIComponent(f.to_date)}`;
         };
 
         document.getElementById('exportPdf').onclick = () => {
             let f = getFilters();
 
             window.location =
-                `{{ route('dashboard.export.pdf') }}?payment_mode=${encodeURIComponent(f.payment_mode)}&from_date=${encodeURIComponent(f.from_date)}&to_date=${encodeURIComponent(f.to_date)}`;
+                `{{ route('dashboard.export.pdf') }}?company=${encodeURIComponent(f.company)}&payment_mode=${encodeURIComponent(f.payment_mode)}&from_date=${encodeURIComponent(f.from_date)}&to_date=${encodeURIComponent(f.to_date)}`;
         };
 
         // Redraw on resize (debounced) and whenever the colour mode changes.
