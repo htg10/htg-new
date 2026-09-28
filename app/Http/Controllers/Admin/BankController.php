@@ -5,12 +5,63 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Bank;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BankController extends Controller
 {
     public function index()
     {
-        $banks = Bank::latest()->paginate(15);
+        $banks = Bank::orderBy('bank')->get();
+
+        $bankNames = $banks->pluck('bank')->toArray();
+
+        // Income: payment_histories where payment_bank matches
+        $phIncome = DB::table('payment_histories')
+            ->select('payment_bank', DB::raw('SUM(amount) as total'))
+            ->whereIn('payment_bank', $bankNames)
+            ->groupBy('payment_bank')
+            ->pluck('total', 'payment_bank');
+
+        // Income: entries.receivedamount where entries.payment matches
+        // (for entries that pre-date payment_histories or have no payment_history)
+        $entryIncome = DB::table('entries')
+            ->select('payment', DB::raw('SUM(CAST(receivedamount AS DECIMAL(14,2))) as total'))
+            ->whereIn('payment', $bankNames)
+            ->where(function ($q) {
+                $q->where('receivedamount', '>', 0)
+                  ->whereNotNull('receivedamount');
+            })
+            ->whereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from('payment_histories')
+                    ->whereColumn('payment_histories.entry_id', 'entries.id');
+            })
+            ->groupBy('payment')
+            ->pluck('total', 'payment');
+
+        // Expense: expenses table
+        $expenseOut = DB::table('expenses')
+            ->select('payment_mode', DB::raw('SUM(amount) as total'))
+            ->whereIn('payment_mode', $bankNames)
+            ->groupBy('payment_mode')
+            ->pluck('total', 'payment_mode');
+
+        // Building payments (rent collections = income)
+        $buildingIn = DB::table('buildings')
+            ->select('payment_mode', DB::raw('SUM(CAST(amount AS DECIMAL(14,2))) as total'))
+            ->whereIn('payment_mode', $bankNames)
+            ->groupBy('payment_mode')
+            ->pluck('total', 'payment_mode');
+
+        foreach ($banks as $bank) {
+            $name = $bank->bank;
+            $income = ($phIncome[$name] ?? 0) + ($entryIncome[$name] ?? 0) + ($buildingIn[$name] ?? 0);
+            $expense = $expenseOut[$name] ?? 0;
+            $bank->total_income  = $income;
+            $bank->total_expense = $expense;
+            $bank->current_balance = $bank->opening_balance + $income - $expense;
+        }
+
         return view('admin.bank.index', compact('banks'));
     }
 
@@ -23,7 +74,8 @@ class BankController extends Controller
     {
         $request->validate([
             'bank' => 'required',
-            'attachment' => 'nullable|file|mimes:jpg,png,pdf'
+            'opening_balance' => 'nullable|numeric',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:2048',
         ]);
 
         $imagePath = null;
@@ -37,6 +89,7 @@ class BankController extends Controller
 
         Bank::create([
             'bank' => $request->bank,
+            'opening_balance' => $request->opening_balance ?? 0,
             'attachment' => $imagePath,
         ]);
 
@@ -53,19 +106,17 @@ class BankController extends Controller
     {
         $request->validate([
             'bank' => 'required',
+            'opening_balance' => 'nullable|numeric',
             'attachment' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $imagePath = $bank->attachment;
 
         if ($request->hasFile('attachment')) {
-
-            // ❌ remove old image
             if ($bank->attachment && file_exists(public_path($bank->attachment))) {
                 unlink(public_path($bank->attachment));
             }
 
-            // ✅ YOUR REQUIRED STORAGE STYLE
             $fileImage = $request->file('attachment');
             $fileImageName = rand() . '.' . $fileImage->getClientOriginalName();
             $fileImage->storeAs('bank/', $fileImageName);
@@ -74,6 +125,7 @@ class BankController extends Controller
 
         $bank->update([
             'bank' => $request->bank,
+            'opening_balance' => $request->opening_balance ?? 0,
             'attachment' => $imagePath,
         ]);
 

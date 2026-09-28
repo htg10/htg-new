@@ -33,6 +33,7 @@ class Entry extends Model
         'balance_amount',
         'image',
         'state',
+        'reminders_enabled',
     ];
 
     public function product()

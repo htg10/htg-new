@@ -155,8 +155,8 @@
             $('#telecallerTable').DataTable({
                 ordering: false,
                 responsive: true,
-                pageLength: 10,
-                lengthMenu: [10, 25, 50, 100],
+                pageLength: 15,
+                lengthMenu: [15, 25, 50, 100],
             });
         });
     </script>

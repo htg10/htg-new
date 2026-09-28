@@ -8,6 +8,11 @@ class Bank extends Model
 {
     protected $fillable = [
         'bank',
-        'attachment'
+        'opening_balance',
+        'attachment',
+    ];
+
+    protected $casts = [
+        'opening_balance' => 'decimal:2',
     ];
 }

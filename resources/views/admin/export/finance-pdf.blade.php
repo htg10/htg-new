@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <style>
         body {
-            font-family: sans-serif;
+            font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
             color: #222;
             margin: 0;

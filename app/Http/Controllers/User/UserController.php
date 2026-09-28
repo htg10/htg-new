@@ -54,7 +54,7 @@ class UserController extends Controller
             }
         }
 
-        $entries = $query->latest()->paginate(10);
+        $entries = $query->latest()->paginate(15);
 
         foreach ($entries as $entry) {
             $entry->totalAmount = 0;

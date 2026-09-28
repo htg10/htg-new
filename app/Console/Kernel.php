@@ -17,6 +17,12 @@ class Kernel extends ConsoleKernel
 
         // ExpiredPlan schedule
         $schedule->command('send:expired')->daily()->withoutOverlapping();
+
+        // Unified reminder system (processes all active rules)
+        $schedule->command('send:reminders')->dailyAt('09:00')->withoutOverlapping();
+
+        // Balance payment reminders (weekly on Monday)
+        $schedule->command('send:balance-reminders')->weeklyOn(1, '10:00')->withoutOverlapping();
     }
 
 

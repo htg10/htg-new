@@ -37,14 +37,19 @@
                     <form method="POST" enctype="multipart/form-data" action="{{ route('bank.store') }}">
                         @csrf
 
-                        <div class="mb-2 col-lg-6">
-                            <label>Bank Name *</label>
-                            <input type="text" name="bank" class="form-control" placeholder="Enter Bank Name"
-                                required>
-                        </div>
-                        <div class="mb-2 col-lg-6">
-                            <label>Attachment</label>
-                            <input type="file" name="attachment" class="form-control">
+                        <div class="row">
+                            <div class="mb-3 col-lg-6">
+                                <label class="form-label">Bank Name *</label>
+                                <input type="text" name="bank" class="form-control" placeholder="Enter Bank Name" required>
+                            </div>
+                            <div class="mb-3 col-lg-6">
+                                <label class="form-label">Opening Balance</label>
+                                <input type="number" name="opening_balance" class="form-control" placeholder="0.00" step="0.01" value="0">
+                            </div>
+                            <div class="mb-3 col-lg-6">
+                                <label class="form-label">Logo / Attachment</label>
+                                <input type="file" name="attachment" class="form-control">
+                            </div>
                         </div>
 
                         <button class="btn btn-success">Add Bank</button>

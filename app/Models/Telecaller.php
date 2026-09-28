@@ -46,4 +46,9 @@ class Telecaller extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function notes()
+    {
+        return $this->hasMany(LeadNote::class, 'telecaller_id')->latest();
+    }
 }

@@ -71,9 +71,27 @@
                             <span key="t-chat">All Leads</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('admin.lead.kanban') }}" class="waves-effect {{ $on('admin/lead/kanban') }}">
+                            <i class="bx bx-columns"></i>
+                            <span>Pipeline Board</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.lead.analytics') }}" class="waves-effect {{ $on('admin/lead/analytics') }}">
+                            <i class="bx bx-bar-chart-alt-2"></i>
+                            <span>Lead Analytics</span>
+                        </a>
+                    </li>
 
                     <span class="htg-nav-label">Finance</span>
 
+                    <li>
+                        <a href="{{ route('service.index') }}" class="waves-effect {{ $on('admin/service*') }}">
+                            <i class="bx bx-package"></i>
+                            <span>Services</span>
+                        </a>
+                    </li>
                     <li>
                         <a href="{{ route('bank.index') }}" class="waves-effect {{ $on('admin/bank*') }}">
                             <i class="fas fa-university"></i>
@@ -96,6 +114,33 @@
                         <a href="/admin/rent/index" class="waves-effect {{ $on('admin/rent*') }}">
                             <i class="bx bx-building-house"></i>
                             <span key="t-chat">Building Rent</span>
+                        </a>
+                    </li>
+
+                    <span class="htg-nav-label">Communication</span>
+
+                    <li>
+                        <a href="{{ route('admin.whatsapp.chat') }}" class="waves-effect {{ $on('admin/whatsapp/chat*') }}">
+                            <i class="bx bxl-whatsapp"></i>
+                            <span>WhatsApp Chat</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.whatsapp.settings') }}" class="waves-effect {{ $on('admin/whatsapp/settings*') || $on('admin/whatsapp/logs*') }}">
+                            <i class="bx bx-cog"></i>
+                            <span>WhatsApp Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.reminders.index') }}" class="waves-effect {{ $on('admin/reminders*') }}">
+                            <i class="bx bx-bell"></i>
+                            <span>Reminders</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.balance-reminders.index') }}" class="waves-effect {{ $on('admin/balance-reminders*') }}">
+                            <i class="bx bx-wallet"></i>
+                            <span>Balance Reminders</span>
                         </a>
                     </li>
 

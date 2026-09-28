@@ -16,26 +16,7 @@
     $mode = $mode ?? 'create';
     $existing = $existing ?? [];
 
-    $all_products = [
-        'Local Keyword SEO',
-        'Virtual Tour',
-        'Google Business Profile Management',
-        'Zonal Keyword SEO',
-        'Google Ads',
-        'Google Ads Recharge',
-        'Meta Ads Management',
-        'Facebook Ads Recharge',
-        'Social Media Management',
-        'Website Design',
-        'Custom Development',
-        'Website Amc',
-        'Product Photography',
-        'Domain',
-        'Hosting',
-        'QR Code',
-        'Web SEO',
-        'Others',
-    ];
+    $all_products = \App\Models\Service::active()->ordered()->pluck('name')->toArray();
 
     $validities = ['1 Month', '3 Months', '4 Months', '6 Months', '12 Months', '24 Months', '36 Months', 'Lifetime'];
 

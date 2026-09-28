@@ -4,6 +4,12 @@ use App\Http\Controllers\Admin\BankController;
 use App\Http\Controllers\Admin\BuildingController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\PurposeController;
+use App\Http\Controllers\Admin\ServiceController;
+use App\Http\Controllers\Admin\ReminderController;
+use App\Http\Controllers\Admin\BalanceReminderController;
+use App\Http\Controllers\Admin\WhatsappController;
+use App\Http\Controllers\Admin\WhatsappChatController;
+use App\Http\Controllers\Admin\LeadCrmController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\SendMail;
@@ -25,6 +31,10 @@ Route::get('/paginate', function () {
 });
 
 Route::get('/notify', [TestingController::class, 'notify']);
+
+// WhatsApp Webhook (public, no auth)
+Route::get('/webhook/whatsapp', [WhatsappChatController::class, 'webhookVerify']);
+Route::post('/webhook/whatsapp', [WhatsappChatController::class, 'webhookReceive']);
 
 // Clear Cache
 Route::get('/clearcache', [CachesController::class, 'caches']);
@@ -92,6 +102,14 @@ Route::group(['middleware' => ['auth', 'role:1']], function () {
     Route::post('/admin/bank/update/{bank}', [BankController::class, 'update'])->name('bank.update');
     Route::delete('/bank/delete/{bank}', [BankController::class, 'destroy'])->name('bank.destroy');
 
+    // Service / Product
+    Route::get('/admin/service', [ServiceController::class, 'index'])->name('service.index');
+    Route::post('/admin/service/store', [ServiceController::class, 'store'])->name('service.store');
+    Route::post('/admin/service/update/{service}', [ServiceController::class, 'update'])->name('service.update');
+    Route::post('/admin/service/toggle/{service}', [ServiceController::class, 'toggle'])->name('service.toggle');
+    Route::post('/admin/service/reorder', [ServiceController::class, 'reorder'])->name('service.reorder');
+    Route::delete('/service/delete/{service}', [ServiceController::class, 'destroy'])->name('service.destroy');
+
     // Purpose
     Route::get('/admin/purpose', [PurposeController::class, 'index'])->name('purpose.index');
     Route::get('/admin/purpose/create', [PurposeController::class, 'create'])->name('purpose.create');
@@ -120,13 +138,65 @@ Route::group(['middleware' => ['auth', 'role:1']], function () {
     Route::patch('/admin/lead/{id}', [AdminController::class, 'update'])->name('admin.lead.update');
     Route::get('/admin/lead/delete/{id}', [AdminController::class, 'delete1'])->name('admin.lead.delete');
 
-    // for room rent
+    // Lead CRM
+    Route::get('/admin/lead/kanban', [LeadCrmController::class, 'kanban'])->name('admin.lead.kanban');
+    Route::post('/admin/lead/kanban-update', [LeadCrmController::class, 'kanbanUpdate'])->name('admin.lead.kanbanUpdate');
+    Route::get('/admin/lead/analytics', [LeadCrmController::class, 'analytics'])->name('admin.lead.analytics');
+    Route::get('/admin/lead/{id}/detail', [LeadCrmController::class, 'show'])->name('admin.lead.detail');
+    Route::post('/admin/lead/{id}/notes', [LeadCrmController::class, 'storeNote'])->name('admin.lead.storeNote');
+    Route::delete('/admin/lead/{id}/notes/{noteId}', [LeadCrmController::class, 'deleteNote'])->name('admin.lead.deleteNote');
+    Route::patch('/admin/lead/{id}/update-field', [LeadCrmController::class, 'updateField'])->name('admin.lead.updateField');
+
+    // Rent — Properties
     Route::get('/admin/rent/index', [BuildingController::class, 'index'])->name('admin.rent.index');
+    Route::post('/admin/rent/property/store', [BuildingController::class, 'storeProperty'])->name('admin.rent.property.store');
+    Route::patch('/admin/rent/property/{id}', [BuildingController::class, 'updateProperty'])->name('admin.rent.property.update');
+    Route::delete('/admin/rent/property/{id}', [BuildingController::class, 'deleteProperty'])->name('admin.rent.property.delete');
+
+    // Rent — Tenants
+    Route::post('/admin/rent/tenant/store', [BuildingController::class, 'storeTenant'])->name('admin.rent.tenant.store');
+    Route::patch('/admin/rent/tenant/{id}', [BuildingController::class, 'updateTenant'])->name('admin.rent.tenant.update');
+    Route::post('/admin/rent/tenant/{id}/toggle', [BuildingController::class, 'toggleTenant'])->name('admin.rent.tenant.toggle');
+    Route::delete('/admin/rent/tenant/{id}', [BuildingController::class, 'deleteTenant'])->name('admin.rent.tenant.delete');
+
+    // Rent — Payments
     Route::get('/admin/rent/create', [BuildingController::class, 'create'])->name('admin.rent.create');
     Route::post('/admin/rent/create', [BuildingController::class, 'store'])->name('admin.rent.store');
     Route::get('/admin/rent/{id}/edit', [BuildingController::class, 'edit'])->name('admin.rent.edit');
     Route::patch('/admin/rent/{id}', [BuildingController::class, 'update'])->name('admin.rent.update');
-    Route::get('/admin/rent/delete/{id}', [BuildingController::class, 'delete1'])->name('admin.rent.delete');
+    Route::get('/admin/rent/delete/{id}', [BuildingController::class, 'delete'])->name('admin.rent.delete');
+
+    // WhatsApp
+    Route::get('/admin/whatsapp/settings', [WhatsappController::class, 'settings'])->name('admin.whatsapp.settings');
+    Route::post('/admin/whatsapp/settings', [WhatsappController::class, 'saveSettings'])->name('admin.whatsapp.settings.save');
+    Route::get('/admin/whatsapp/test', [WhatsappController::class, 'testConnection'])->name('admin.whatsapp.test');
+    Route::get('/admin/whatsapp/sync', [WhatsappController::class, 'syncTemplates'])->name('admin.whatsapp.sync');
+    Route::delete('/admin/whatsapp/template/{id}', [WhatsappController::class, 'deleteTemplate'])->name('admin.whatsapp.template.delete');
+    Route::post('/admin/whatsapp/send', [WhatsappController::class, 'sendMessage'])->name('admin.whatsapp.send');
+    Route::get('/admin/whatsapp/logs', [WhatsappController::class, 'logs'])->name('admin.whatsapp.logs');
+
+    // WhatsApp Chat
+    Route::get('/admin/whatsapp/chat', [WhatsappChatController::class, 'index'])->name('admin.whatsapp.chat');
+    Route::get('/admin/whatsapp/chat/conversations', [WhatsappChatController::class, 'conversations'])->name('admin.whatsapp.chat.conversations');
+    Route::get('/admin/whatsapp/chat/{phone}/messages', [WhatsappChatController::class, 'messages'])->name('admin.whatsapp.chat.messages');
+    Route::post('/admin/whatsapp/chat/send', [WhatsappChatController::class, 'send'])->name('admin.whatsapp.chat.send');
+    Route::get('/admin/whatsapp/chat/search-contacts', [WhatsappChatController::class, 'searchContacts'])->name('admin.whatsapp.chat.search');
+
+    // Reminders
+    Route::get('/admin/reminders', [ReminderController::class, 'index'])->name('admin.reminders.index');
+    Route::post('/admin/reminders/rule/store', [ReminderController::class, 'storeRule'])->name('admin.reminders.rule.store');
+    Route::patch('/admin/reminders/rule/{id}', [ReminderController::class, 'updateRule'])->name('admin.reminders.rule.update');
+    Route::post('/admin/reminders/rule/{id}/toggle', [ReminderController::class, 'toggleRule'])->name('admin.reminders.rule.toggle');
+    Route::delete('/admin/reminders/rule/{id}', [ReminderController::class, 'deleteRule'])->name('admin.reminders.rule.delete');
+    Route::post('/admin/reminders/client/{id}/toggle', [ReminderController::class, 'toggleClient'])->name('admin.reminders.client.toggle');
+    Route::post('/admin/reminders/run', [ReminderController::class, 'runNow'])->name('admin.reminders.run');
+    Route::get('/admin/reminders/logs', [ReminderController::class, 'logs'])->name('admin.reminders.logs');
+
+    // Balance Reminders
+    Route::get('/admin/balance-reminders', [BalanceReminderController::class, 'index'])->name('admin.balance-reminders.index');
+    Route::post('/admin/balance-reminders/send/{id}', [BalanceReminderController::class, 'send'])->name('admin.balance-reminders.send');
+    Route::post('/admin/balance-reminders/send-bulk', [BalanceReminderController::class, 'sendBulk'])->name('admin.balance-reminders.send-bulk');
+    Route::get('/admin/balance-reminders/logs', [BalanceReminderController::class, 'logs'])->name('admin.balance-reminders.logs');
 });
 
 // User Routes
