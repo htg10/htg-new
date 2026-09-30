@@ -227,7 +227,7 @@ class DashboardController extends Controller
             $data['image'] = json_encode($imagePaths);
         }
 
-        $inputDate = $request->input('date');
+        $inputDate = $request->input('date') ?? now()->toDateString();
         $entry = Entry::create($data);
         $startDate = Carbon::parse($inputDate);
 
