@@ -267,7 +267,7 @@
     </div>
 @endsection
 
-@section('js')
+@section('script')
     <script>
         function toggleMsgFields() {
             const type = document.getElementById('wa-msg-type').value;

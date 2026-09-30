@@ -18,11 +18,11 @@ class BackendIndexController extends Controller
 {
     public function index()
     {
-        $entry = Entry::all();
-        $services = Products::all();
+        $entry = Entry::where('date', '>=', '2025-09-01')->get();
+        $services = Products::whereHas('entry', fn($q) => $q->where('date', '>=', '2025-09-01'))->get();
         $banks = Bank::all();
 
-        $entries = Entry::with(['product', 'user'])->get();
+        $entries = Entry::with(['product', 'user'])->where('date', '>=', '2025-09-01')->get();
 
         $totalAmount = $entries->reduce(function ($carry, $entry) {
             return $carry + ($entry->product ? $entry->product->sum('total_amount') : 0);
@@ -152,7 +152,8 @@ class BackendIndexController extends Controller
                 'ph.payment_date',
                 'ph.amount'
             )
-            ->whereNotNull('e.payment');
+            ->whereNotNull('e.payment')
+            ->where('e.date', '>=', '2025-09-01');
 
         if ($company)
             $income->where('e.company', 'like', '%' . $company . '%');
@@ -235,7 +236,8 @@ class BackendIndexController extends Controller
                 'ph.amount',
                 DB::raw("'Income' as type")
             )
-            ->whereNotNull('e.payment');
+            ->whereNotNull('e.payment')
+            ->where('e.date', '>=', '2025-09-01');
 
         if (!empty($company)) {
             $incomeQuery->where('e.company', 'like', '%' . $company . '%');
@@ -297,6 +299,7 @@ class BackendIndexController extends Controller
                 DB::raw("COALESCE(u.name, 'Unknown') as name"),
                 DB::raw('COUNT(e.id) as count')
             )
+            ->where('e.date', '>=', '2025-09-01')
             ->groupBy('u.name');
 
         if (!empty($company)) {
@@ -332,6 +335,7 @@ class BackendIndexController extends Controller
                 DB::raw("COALESCE(p.product_name, 'Unknown') as name"),
                 DB::raw('COUNT(p.id) as count')
             )
+            ->where('e.date', '>=', '2025-09-01')
             ->groupBy('p.product_name');
 
         if (!empty($company)) {
@@ -369,6 +373,7 @@ class BackendIndexController extends Controller
                 DB::raw('SUM(p.paid_amount) as amount')
             )
             ->whereNotNull('e.payment')
+            ->where('e.date', '>=', '2025-09-01')
             ->groupBy('u.name');
 
         if (!empty($company)) {
@@ -405,6 +410,7 @@ class BackendIndexController extends Controller
                 DB::raw('SUM(p.paid_amount) as amount')
             )
             ->whereNotNull('e.payment')
+            ->where('e.date', '>=', '2025-09-01')
             ->groupBy('p.product_name');
 
         if (!empty($company)) {
@@ -441,6 +447,7 @@ class BackendIndexController extends Controller
                 DB::raw('SUM(p.paid_amount) as amount')
             )
             ->whereNotNull('e.payment')
+            ->where('e.date', '>=', '2025-09-01')
             ->groupBy('e.payment');
 
         if (!empty($company)) {
@@ -477,6 +484,7 @@ class BackendIndexController extends Controller
                 DB::raw('SUM(p.paid_amount) as amount')
             )
             ->whereNotNull('e.payment')
+            ->where('e.date', '>=', '2025-09-01')
             ->groupBy('e.date')
             ->orderBy('e.date', 'ASC');
 

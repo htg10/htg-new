@@ -119,7 +119,7 @@ class SendReminders extends Command
 
         $isExpired = in_array($rule->type, ['on_expiry', 'after_expiry']);
         $templateId = $rule->sms_template_id
-            ?: env($isExpired ? 'EXPIRY_TEMPLATE_ID' : 'BEFORE_EXPIRY_EMPLATE_ID');
+            ?: env($isExpired ? 'EXPIRY_TEMPLATE_ID' : 'BEFORE_EXPIRY_TEMPLATE_ID');
 
         $message = $isExpired
             ? "Hi {$entry->contact}, We noticed that your services with Help Together Group has expired. We'd love to have you back! Please renew soon to continue enjoying our services. Contact us: +91 96346 44622"

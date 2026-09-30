@@ -27,7 +27,8 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Entry::with('product')->where('user_id', Auth::id());
+        $query = Entry::with('product')->where('user_id', Auth::id())
+            ->where('date', '>=', '2025-09-01');
 
         if ($request->has('company')) {
             $query->where('company', 'like', '%' . $request->company . '%');

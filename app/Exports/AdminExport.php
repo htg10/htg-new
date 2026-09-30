@@ -41,7 +41,8 @@ class AdminExport implements FromCollection, WithMapping, WithHeadings
 
     public function collection()
     {
-        $query = Entry::with('product');
+        $query = Entry::with('product')
+            ->where('date', '>=', '2025-09-01');
 
         // Company filter
         if ($this->request->company) {

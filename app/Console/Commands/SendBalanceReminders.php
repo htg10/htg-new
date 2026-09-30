@@ -111,7 +111,7 @@ class SendBalanceReminders extends Command
             return ['success' => false, 'error' => 'No phone number'];
         }
 
-        $templateId = env('BALANCE_REMINDER_TEMPLATE_ID', env('BEFORE_EXPIRY_EMPLATE_ID'));
+        $templateId = env('BALANCE_REMINDER_TEMPLATE_ID', env('BEFORE_EXPIRY_TEMPLATE_ID'));
 
         $message = "Hi {$entry->contact}, this is a reminder from Help Together Group. "
             . "Your outstanding balance for {$product->product_name} is Rs.{$product->balance_amount}. "

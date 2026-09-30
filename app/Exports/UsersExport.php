@@ -24,7 +24,8 @@ class UsersExport implements FromCollection, WithMapping, WithHeadings
     }
     public function collection()
     {
-        $query = Entry::with('product')->where('user_id', $this->userId);
+        $query = Entry::with('product')->where('user_id', $this->userId)
+            ->where('date', '>=', '2025-09-01');
 
         if (!empty($this->status)) {
             if ($this->status === 'Expired') {

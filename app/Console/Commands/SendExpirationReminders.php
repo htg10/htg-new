@@ -29,7 +29,7 @@ class SendExpirationReminders extends Command
 
         // dd($clients);
         foreach ($clients as $client) {
-            $smsTemplateId = env('BEFORE_EXPIRY_EMPLATE_ID');
+            $smsTemplateId = env('BEFORE_EXPIRY_TEMPLATE_ID');
             $message = "Hi" . $client->entry->contact . ", We noticed that your services with Help Together Group has expired. We’d love to have you back! Please renew soon to continue enjoying our services. Contact us: +91 96346 44622";
             // $message = "Your Services with Help Together Group is up for renewal. Please renew by" . $client->entry->contact . " to avoid interruptions. For More Info Call us  +91 96346 44622.";
             SMSController::sendSms($smsTemplateId, $message, $client->entry->contactno);

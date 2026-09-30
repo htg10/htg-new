@@ -27,10 +27,10 @@ class DashboardController extends Controller
     
     public function dashboard()
     {
-        $entry = Entry::all();
-        $services = Products::all();
+        $entry = Entry::where('date', '>=', '2025-09-01')->get();
+        $services = Products::whereHas('entry', fn($q) => $q->where('date', '>=', '2025-09-01'))->get();
 
-        $entries = Entry::with('product')->get();
+        $entries = Entry::with('product')->where('date', '>=', '2025-09-01')->get();
 
         $totalAmount = $entries->reduce(function ($carry, $entry) {
             return $carry + ($entry->product ? $entry->product->sum('total_amount') : 0);
@@ -46,7 +46,8 @@ class DashboardController extends Controller
     
     public function index(Request $request)
     {
-        $query = Entry::with('product', 'user'); // Eager load 'user' for BDM Name
+        $query = Entry::with('product', 'user')
+            ->where('date', '>=', '2025-09-01');
 
         // Apply filters if any
         if ($request->has('company')) {

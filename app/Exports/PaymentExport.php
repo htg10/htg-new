@@ -23,7 +23,8 @@ class PaymentExport implements FromCollection, WithHeadings
                 'e.payment as Bank',
                 DB::raw('SUM(p.paid_amount) as Amount')
             )
-            ->whereNotNull('e.payment');
+            ->whereNotNull('e.payment')
+            ->where('e.date', '>=', '2025-09-01');
 
         if ($this->request->payment_mode) {
             $query->where('e.payment', $this->request->payment_mode);
