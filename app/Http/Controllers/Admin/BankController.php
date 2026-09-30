@@ -15,10 +15,13 @@ class BankController extends Controller
 
         $bankNames = $banks->pluck('bank')->toArray();
 
+        $cutoff = '2025-09-01';
+
         // Income: payment_histories where payment_bank matches
         $phIncome = DB::table('payment_histories')
             ->select('payment_bank', DB::raw('SUM(amount) as total'))
             ->whereIn('payment_bank', $bankNames)
+            ->where('payment_date', '>=', $cutoff)
             ->groupBy('payment_bank')
             ->pluck('total', 'payment_bank');
 
@@ -27,6 +30,7 @@ class BankController extends Controller
         $entryIncome = DB::table('entries')
             ->select('payment', DB::raw('SUM(CAST(receivedamount AS DECIMAL(14,2))) as total'))
             ->whereIn('payment', $bankNames)
+            ->where('date', '>=', $cutoff)
             ->where(function ($q) {
                 $q->where('receivedamount', '>', 0)
                   ->whereNotNull('receivedamount');
@@ -43,6 +47,7 @@ class BankController extends Controller
         $expenseOut = DB::table('expenses')
             ->select('payment_mode', DB::raw('SUM(amount) as total'))
             ->whereIn('payment_mode', $bankNames)
+            ->where('date', '>=', $cutoff)
             ->groupBy('payment_mode')
             ->pluck('total', 'payment_mode');
 
@@ -50,6 +55,7 @@ class BankController extends Controller
         $buildingIn = DB::table('buildings')
             ->select('payment_mode', DB::raw('SUM(CAST(amount AS DECIMAL(14,2))) as total'))
             ->whereIn('payment_mode', $bankNames)
+            ->where('created_at', '>=', $cutoff)
             ->groupBy('payment_mode')
             ->pluck('total', 'payment_mode');
 

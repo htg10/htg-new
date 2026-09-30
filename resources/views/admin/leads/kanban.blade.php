@@ -88,7 +88,7 @@
                                         <span class="text-muted" style="font-size:11px">{{ $lead->user->name ?? '—' }}</span>
                                         <div class="htg-kanban__card-actions">
                                             @if ($mobileDigits)
-                                                <a href="https://wa.me/{{ $waNumber }}" target="_blank" rel="noopener" title="WhatsApp" class="htg-kanban__action is-wa"><i class="bx bxl-whatsapp"></i></a>
+                                                <a href="{{ route('admin.whatsapp.chat') }}?phone={{ $waNumber }}&name={{ urlencode($lead->name ?? $lead->business ?? '') }}" title="WhatsApp" class="htg-kanban__action is-wa"><i class="bx bxl-whatsapp"></i></a>
                                             @endif
                                             <a href="{{ route('admin.lead.detail', $lead->id) }}" title="View" class="htg-kanban__action"><i class="bx bx-show"></i></a>
                                         </div>

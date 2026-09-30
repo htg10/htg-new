@@ -356,5 +356,16 @@ INSERT INTO `migrations` (`migration`, `batch`) VALUES
 ('2026_09_28_120000_create_lead_notes_table', 2);
 
 -- ============================================================
+-- Reset bank amounts for fresh start
+-- ============================================================
+
+UPDATE `banks` SET `opening_balance` = 0;
+TRUNCATE TABLE `payment_histories`;
+TRUNCATE TABLE `expenses`;
+UPDATE `entries` SET `receivedamount` = NULL, `payment` = NULL;
+UPDATE `buildings` SET `amount` = NULL, `payment_mode` = NULL;
+
+-- ============================================================
 -- Done! All new tables and columns have been added.
+-- Bank amounts have been reset to zero.
 -- ============================================================

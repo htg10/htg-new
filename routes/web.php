@@ -180,6 +180,7 @@ Route::group(['middleware' => ['auth', 'role:1']], function () {
     Route::get('/admin/whatsapp/chat/conversations', [WhatsappChatController::class, 'conversations'])->name('admin.whatsapp.chat.conversations');
     Route::get('/admin/whatsapp/chat/{phone}/messages', [WhatsappChatController::class, 'messages'])->name('admin.whatsapp.chat.messages');
     Route::post('/admin/whatsapp/chat/send', [WhatsappChatController::class, 'send'])->name('admin.whatsapp.chat.send');
+    Route::post('/admin/whatsapp/chat/send-template', [WhatsappChatController::class, 'sendTemplate'])->name('admin.whatsapp.chat.send-template');
     Route::get('/admin/whatsapp/chat/search-contacts', [WhatsappChatController::class, 'searchContacts'])->name('admin.whatsapp.chat.search');
 
     // Reminders

@@ -107,9 +107,30 @@
                     </div>
                 </div>
 
+                {{-- Template Picker (hidden by default) --}}
+                <div class="htg-chat__tpl-picker" id="tplPicker" style="display:none">
+                    <div class="htg-chat__tpl-picker-head">
+                        <strong><i class="bx bx-collection me-1"></i>Send Template</strong>
+                        <button type="button" class="btn-close btn-close-sm" onclick="closeTplPicker()"></button>
+                    </div>
+                    <select id="tplSelect" class="form-select form-select-sm mb-2">
+                        <option value="">Select template</option>
+                        @foreach($templates as $tpl)
+                            <option value="{{ $tpl->template_name }}">{{ $tpl->name }} ({{ $tpl->language }})</option>
+                        @endforeach
+                    </select>
+                    <input type="text" id="tplParams" class="form-control form-control-sm mb-2" placeholder="Parameters (comma-separated)" style="display:none">
+                    <button class="btn btn-success btn-sm w-100" id="tplSendBtn" onclick="sendTemplateMsg()" disabled>
+                        <i class="bx bxl-whatsapp me-1"></i> Send Template
+                    </button>
+                </div>
+
                 {{-- Input Area --}}
                 <div class="htg-chat__input-area">
                     <div class="htg-chat__input-wrap">
+                        <button class="htg-chat__attach-btn" onclick="toggleTplPicker()" title="Send template">
+                            <i class="bx bx-collection"></i>
+                        </button>
                         <textarea id="chatInput" rows="1" placeholder="Type a message" maxlength="4096"></textarea>
                         <button class="htg-chat__send-btn" id="chatSendBtn" onclick="sendMessage()" title="Send" disabled>
                             <i class="bx bx-send"></i>
@@ -223,7 +244,12 @@ async function loadMessages(phone) {
         });
 
         if (data.messages.length === 0) {
-            container.innerHTML = '<div class="htg-chat__no-messages"><p>No messages yet. Say hello!</p></div>';
+            container.innerHTML = `<div class="htg-chat__no-messages">
+                <i class="bx bxl-whatsapp" style="font-size:48px;color:#25D366;opacity:.5"></i>
+                <p>No messages yet</p>
+                <small style="color:var(--htg-text-3)">Send a template to start the conversation</small>
+                <button class="btn btn-success btn-sm mt-2" onclick="toggleTplPicker()"><i class="bx bx-collection me-1"></i> Send Template</button>
+            </div>`;
         }
 
         container.scrollTop = container.scrollHeight;
@@ -443,5 +469,87 @@ function escapeAttr(text) {
 function linkify(text) {
     return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 }
+
+// Template picker
+function toggleTplPicker() {
+    const picker = document.getElementById('tplPicker');
+    picker.style.display = picker.style.display === 'none' ? '' : 'none';
+}
+function closeTplPicker() {
+    document.getElementById('tplPicker').style.display = 'none';
+    document.getElementById('tplSelect').value = '';
+    document.getElementById('tplParams').value = '';
+    document.getElementById('tplParams').style.display = 'none';
+    document.getElementById('tplSendBtn').disabled = true;
+}
+
+document.getElementById('tplSelect').addEventListener('change', function() {
+    const hasVal = !!this.value;
+    document.getElementById('tplSendBtn').disabled = !hasVal;
+    document.getElementById('tplParams').style.display = hasVal ? '' : 'none';
+});
+
+async function sendTemplateMsg() {
+    const templateName = document.getElementById('tplSelect').value;
+    if (!templateName || !currentPhone) return;
+    const params = document.getElementById('tplParams').value.trim();
+
+    closeTplPicker();
+
+    const container = document.getElementById('chatMessages');
+    const tempId = 'temp-' + Date.now();
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    container.innerHTML += `
+        <div class="htg-chat__bubble htg-chat__bubble--out" id="${tempId}">
+            <div class="htg-chat__bubble-body">
+                <span class="htg-chat__media-label"><i class="bx bx-collection"></i> template</span>
+                <span class="htg-chat__bubble-text">[Template: ${escapeHtml(templateName)}]</span>
+                <span class="htg-chat__bubble-meta">${timeStr} <i class="bx bx-time-five" style="opacity:.5"></i></span>
+            </div>
+        </div>
+    `;
+    container.scrollTop = container.scrollHeight;
+
+    try {
+        const res = await fetch('/admin/whatsapp/chat/send-template', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({
+                phone: currentPhone,
+                template_name: templateName,
+                template_params: params || null,
+                contact_name: currentName,
+            }),
+        });
+        const data = await res.json();
+
+        const tempEl = document.getElementById(tempId);
+        if (tempEl) {
+            if (data.success) {
+                tempEl.outerHTML = renderMessage(data.message);
+            } else {
+                const meta = tempEl.querySelector('.htg-chat__bubble-meta');
+                if (meta) meta.innerHTML = `${timeStr} <i class="bx bx-error" style="color:var(--htg-bad)"></i>`;
+            }
+        }
+        updateContactList(currentPhone, '[Template: ' + templateName + ']', timeStr);
+    } catch (e) {
+        const tempEl = document.getElementById(tempId);
+        if (tempEl) {
+            const meta = tempEl.querySelector('.htg-chat__bubble-meta');
+            if (meta) meta.innerHTML = `${timeStr} <i class="bx bx-error" style="color:var(--htg-bad)"></i>`;
+        }
+    }
+    container.scrollTop = container.scrollHeight;
+}
+
+// Auto-open chat from URL parameter
+@if($openPhone)
+    document.addEventListener('DOMContentLoaded', function() {
+        openChat('{{ $openPhone }}', '{{ addslashes($openName ?? "") }}', '');
+    });
+@endif
 </script>
 @endsection

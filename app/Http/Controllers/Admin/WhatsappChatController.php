@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Entry;
 use App\Models\Telecaller;
 use App\Models\WhatsappMessage;
+use App\Models\WhatsappTemplate;
 use App\Services\WhatsappService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,10 +14,14 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappChatController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $conversations = $this->getConversations();
-        return view('admin.whatsapp.chat', compact('conversations'));
+        $templates = WhatsappTemplate::where('is_active', true)->orderBy('name')->get();
+        $openPhone = $request->query('phone');
+        $openName = $request->query('name');
+
+        return view('admin.whatsapp.chat', compact('conversations', 'templates', 'openPhone', 'openName'));
     }
 
     public function conversations(Request $request)
@@ -100,6 +105,63 @@ class WhatsappChatController extends Controller
                 'id' => $msg->id,
                 'direction' => 'out',
                 'type' => 'text',
+                'content' => $msg->content,
+                'status' => $msg->status,
+                'time' => $msg->created_at->format('h:i A'),
+                'date' => $msg->created_at->format('d M Y'),
+                'timestamp' => $msg->created_at->timestamp,
+            ],
+        ]);
+    }
+
+    public function sendTemplate(Request $request)
+    {
+        $validated = $request->validate([
+            'phone' => 'required|string|max:20',
+            'template_name' => 'required|string',
+            'template_params' => 'nullable|string',
+            'contact_name' => 'nullable|string|max:255',
+        ]);
+
+        $phone = preg_replace('/[^0-9]/', '', $validated['phone']);
+        if (strlen($phone) === 10) $phone = '91' . $phone;
+
+        $wa = new WhatsappService();
+
+        $components = [];
+        if (!empty($validated['template_params'])) {
+            $params = array_map('trim', explode(',', $validated['template_params']));
+            $parameters = array_map(fn($p) => ['type' => 'text', 'text' => $p], $params);
+            $components = [['type' => 'body', 'parameters' => $parameters]];
+        }
+
+        $result = $wa->sendTemplate(
+            $phone,
+            $validated['template_name'],
+            'en',
+            $components,
+            $validated['contact_name'] ?? null,
+        );
+
+        $msg = WhatsappMessage::create([
+            'phone' => $phone,
+            'contact_name' => $validated['contact_name'] ?? null,
+            'direction' => 'out',
+            'message_type' => 'template',
+            'content' => '[Template: ' . $validated['template_name'] . ']',
+            'wa_message_id' => $result['wa_message_id'] ?? null,
+            'status' => $result['success'] ? 'sent' : 'failed',
+            'sent_by' => auth()->id(),
+            'is_read' => true,
+        ]);
+
+        return response()->json([
+            'success' => $result['success'],
+            'error' => $result['error'] ?? null,
+            'message' => [
+                'id' => $msg->id,
+                'direction' => 'out',
+                'type' => 'template',
                 'content' => $msg->content,
                 'status' => $msg->status,
                 'time' => $msg->created_at->format('h:i A'),

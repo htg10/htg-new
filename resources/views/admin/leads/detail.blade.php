@@ -79,7 +79,7 @@
                                         <i class="bx bx-phone-call"></i>
                                         <span>Call</span>
                                     </a>
-                                    <a href="https://wa.me/{{ $waNumber }}" target="_blank" rel="noopener" class="htg-quick-action is-wa" title="WhatsApp">
+                                    <a href="{{ route('admin.whatsapp.chat') }}?phone={{ $waNumber }}&name={{ urlencode($lead->name ?? $lead->business ?? '') }}" class="htg-quick-action is-wa" title="WhatsApp">
                                         <i class="bx bxl-whatsapp"></i>
                                         <span>WhatsApp</span>
                                     </a>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\WhatsappLog;
+use App\Models\WhatsappMessage;
 use App\Models\WhatsappSetting;
 use App\Models\WhatsappTemplate;
 use App\Services\WhatsappService;
@@ -143,6 +144,23 @@ class WhatsappController extends Controller
                 isset($validated['context_id']) ? (int) $validated['context_id'] : null,
             );
         }
+
+        $phone = preg_replace('/[^0-9]/', '', $validated['phone']);
+        if (strlen($phone) === 10) $phone = '91' . $phone;
+
+        WhatsappMessage::create([
+            'phone' => $phone,
+            'contact_name' => $validated['name'] ?? null,
+            'direction' => 'out',
+            'message_type' => $validated['type'],
+            'content' => $validated['type'] === 'template'
+                ? '[Template: ' . $validated['template_name'] . ']'
+                : $validated['message'],
+            'wa_message_id' => $result['wa_message_id'] ?? null,
+            'status' => $result['success'] ? 'sent' : 'failed',
+            'sent_by' => auth()->id(),
+            'is_read' => true,
+        ]);
 
         if ($result['success']) {
             return back()->with('success', 'WhatsApp message sent successfully!');

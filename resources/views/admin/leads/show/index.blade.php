@@ -215,8 +215,8 @@
                                                     <div class="htg-contact">
                                                         <a href="tel:{{ $mobileDigits }}"
                                                             class="htg-contact__num">{{ $telecaller->mobile }}</a>
-                                                        <a href="https://wa.me/{{ $waNumber }}" target="_blank"
-                                                            rel="noopener" class="htg-contact__ico is-wa"
+                                                        <a href="{{ route('admin.whatsapp.chat') }}?phone={{ $waNumber }}&name={{ urlencode($telecaller->name ?? '') }}"
+                                                            class="htg-contact__ico is-wa"
                                                             title="WhatsApp {{ $telecaller->name }}"><i
                                                                 class="bx bxl-whatsapp"></i></a>
                                                     </div>
