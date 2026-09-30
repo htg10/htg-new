@@ -228,6 +228,7 @@ class DashboardController extends Controller
         }
 
         $inputDate = $request->input('date') ?? now()->toDateString();
+        $data['date'] = $inputDate;
         $entry = Entry::create($data);
         $startDate = Carbon::parse($inputDate);
 
